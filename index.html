@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrameMic — Art That Listens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #070707;
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.52);
+      --gold: #b8956a;
+      --gold-light: #cead85;
+      --frame-bg: linear-gradient(145deg, #3d2810 0%, #25170a 40%, #1a1008 70%, #2a1b0d 100%);
+      --frame-border: #4a3020;
+      --eink-empty: #1a1510;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    /* Ambient background glow */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 20%, #1c0e06 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Screens ────────────────────────────── */
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px 32px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.55s ease;
+    }
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── Logo ───────────────────────────────── */
+    .logo-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .logo-img {
+      height: 26px;
+      opacity: 0.88;
+      filter: brightness(1.1);
+    }
+    .logo-text {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 300;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      opacity: 0.88;
+    }
+
+    /* ── Frame ──────────────────────────────── */
+    .frame-outer {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .frame-body {
+      background: var(--frame-bg);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow:
+        0 0 0 1px var(--frame-border),
+        0 2px 0 0 rgba(255,255,255,0.07) inset,
+        0 -1px 0 0 rgba(0,0,0,0.5) inset,
+        0 40px 100px rgba(0,0,0,0.95),
+        0 15px 40px rgba(0,0,0,0.7);
+    }
+    .frame-display {
+      width: 100%;
+      height: 100%;
+      background: var(--eink-empty);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .frame-art {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity 1.4s ease;
+      filter: grayscale(100%) contrast(1.08) brightness(0.96);
+    }
+    .frame-art.show {
+      opacity: 1;
+    }
+    .frame-shimmer {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg,
+        transparent 30%,
+        rgba(255,255,255,0.04) 50%,
+        transparent 70%);
+      background-size: 250% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .frame-shimmer.on { opacity: 1; }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── HERO ───────────────────────────────── */
+    #hero .frame-outer { width: 240px; height: 316px; }
+    #hero .frame-body  { width: 240px; height: 316px; }
+
+    .hero-headline {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 40px;
+      font-weight: 300;
+      letter-spacing: -0.4px;
+      text-align: center;
+      margin-top: 28px;
+      line-height: 1.1;
+    }
+    .hero-sub {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* ── Try button ─────────────────────────── */
+    .btn-try {
+      margin-top: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 13px 26px;
+      background: var(--gold);
+      color: #0c0704;
+      border: none;
+      border-radius: 100px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 24px rgba(184,149,106,0.25);
+    }
+    .btn-try:hover {
+      background: var(--gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(184,149,106,0.35);
+    }
+    .btn-try:active { transform: translateY(0); }
+    .btn-try svg { width: 17px; height: 17px; flex-shrink: 0; }
+
+    /* ── VOICE ──────────────────────────────── */
+    #voice .frame-outer { width: 200px; height: 264px; }
+    #voice .frame-body  { width: 200px; height: 264px; padding: 14px; border-radius: 9px; }
+
+    .voice-frame-wrap {
+      transition: filter 0.5s, transform 0.5s;
+      filter: brightness(0.45);
+    }
+    .voice-frame-wrap.lit {
+      filter: brightness(0.8);
+    }
+
+    .voice-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    /* Mic pulse */
+    .mic-ring {
+      position: relative;
+      width: 68px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mic-ring::before,
+    .mic-ring::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1.5px solid rgba(184,149,106,0.35);
+      animation: ripple 2s ease-out infinite;
+    }
+    .mic-ring::after { animation-delay: 0.7s; }
+
+    @keyframes ripple {
+      0%   { transform: scale(0.85); opacity: 0.8; }
+      100% { transform: scale(1.6);  opacity: 0; }
+    }
+
+    .mic-dot {
+      width: 52px;
+      height: 52px;
+      background: var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(184,149,106,0.4);
+    }
+    .mic-dot svg {
+      width: 22px;
+      height: 22px;
+      fill: #0c0704;
+    }
+
+    .voice-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    .voice-quote {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 19px;
+      font-style: italic;
+      font-weight: 300;
+      color: var(--text);
+      text-align: center;
+      max-width: 290px;
+      line-height: 1.55;
+      min-height: 58px;
+    }
+    .caret {
+      display: inline-block;
+      width: 1.5px;
+      height: 0.9em;
+      background: var(--gold);
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      animation: blink 0.85s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Generating row */
+    .gen-row {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-top: 28px;
+    }
+    .gen-row.show { display: flex; }
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 1.5px solid rgba(184,149,106,0.18);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESULT ─────────────────────────────── */
+    #result .frame-outer { width: 220px; height: 290px; }
+    #result .frame-body  { width: 220px; height: 290px; padding: 15px; border-radius: 9px; }
+    #result .frame-body {
+      box-shadow:
+        0 0 0 1px var(--frame-border),
+        0 2px 0 0 rgba(255,255,255,0.07) inset,
+        0 -1px 0 0 rgba(0,0,0,0.5) inset,
+        0 40px 100px rgba(0,0,0,0.95),
+        0 15px 40px rgba(0,0,0,0.7),
+        0 0 80px rgba(184,149,106,0.08);
+    }
+
+    .result-caption {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 14px;
+      font-style: italic;
+      font-weight: 300;
+      color: var(--muted);
+      text-align: center;
+      max-width: 260px;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+    .result-headline {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 30px;
+      font-weight: 400;
+      text-align: center;
+      margin-top: 6px;
+      letter-spacing: -0.2px;
+    }
+
+    .btn-buy {
+      margin-top: 22px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 28px;
+      background: var(--gold);
+      color: #0c0704;
+      border: none;
+      border-radius: 100px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 24px rgba(184,149,106,0.25);
+    }
+    .btn-buy:hover {
+      background: var(--gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(184,149,106,0.35);
+    }
+    .btn-buy:active { transform: translateY(0); }
+
+    .btn-again {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      margin-top: 14px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color 0.2s;
+    }
+    .btn-again:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     HERO
+════════════════════════════════════════ -->
+<div id="hero" class="screen active">
+  <div class="logo-bar">
+    <img class="logo-img"
+         src="https://fraimic.com/cdn/shop/files/Fraimic-Txt-Wht.png"
+         alt="Fraimic"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+    <span class="logo-text" style="display:none">Fraimic</span>
+  </div>
+
+  <div class="frame-outer">
+    <div class="frame-body">
+      <div class="frame-display">
+        <div class="frame-shimmer"></div>
+        <img class="frame-art" id="hero-art"
+             src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&w=240&h=316&fit=crop&q=72"
+             alt="Sample artwork"
+             onload="this.classList.add('show')">
+      </div>
+    </div>
+  </div>
+
+  <h1 class="hero-headline">Art That Listens</h1>
+  <p class="hero-sub">From voice to vision</p>
+
+  <button class="btn-try" id="btn-try">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="19" x2="12" y2="22"/>
+      <line x1="9" y1="22" x2="15" y2="22"/>
+    </svg>
+    Try FrameMic
+  </button>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     VOICE
+════════════════════════════════════════ -->
+<div id="voice" class="screen">
+  <div class="logo-bar">
+    <img class="logo-img"
+         src="https://fraimic.com/cdn/shop/files/Fraimic-Txt-Wht.png"
+         alt="Fraimic"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+    <span class="logo-text" style="display:none">Fraimic</span>
+  </div>
+
+  <div class="voice-frame-wrap" id="voice-frame-wrap">
+    <div class="frame-outer">
+      <div class="frame-body">
+        <div class="frame-display">
+          <div class="frame-shimmer" id="voice-shimmer"></div>
+          <img class="frame-art" id="voice-art" src="" alt="">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="voice-panel" id="voice-panel">
+    <div class="mic-ring">
+      <div class="mic-dot">
+        <!-- mic icon -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0" fill="none" stroke="#0c0704" stroke-width="2" stroke-linecap="round"/>
+          <line x1="12" y1="19" x2="12" y2="22" stroke="#0c0704" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="22" x2="15" y2="22" stroke="#0c0704" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="voice-label" id="voice-label">Listening…</div>
+    <div class="voice-quote" id="voice-quote"><span class="caret"></span></div>
+  </div>
+
+  <div class="gen-row" id="gen-row">
+    <div class="spinner"></div>
+    Generating your vision…
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     RESULT
+════════════════════════════════════════ -->
+<div id="result" class="screen">
+  <div class="logo-bar">
+    <img class="logo-img"
+         src="https://fraimic.com/cdn/shop/files/Fraimic-Txt-Wht.png"
+         alt="Fraimic"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+    <span class="logo-text" style="display:none">Fraimic</span>
+  </div>
+
+  <div class="frame-outer">
+    <div class="frame-body">
+      <div class="frame-display">
+        <img class="frame-art" id="result-art" src="" alt="Your generated artwork">
+      </div>
+    </div>
+  </div>
+
+  <p class="result-caption" id="result-caption"></p>
+  <h2 class="result-headline">Your vision, framed.</h2>
+
+  <a class="btn-buy" href="https://fraimic.com/products/standard-canvas" target="_blank" rel="noopener">
+    Shop Fraimic — $399
+  </a>
+  <button class="btn-again" id="btn-again">Try another</button>
+</div>
+
+
+<script>
+  // ── Config ─────────────────────────────────────────────────────────────
+  const DEMO = {
+    prompt: 'A misty Japanese garden at dawn, cherry blossoms reflected in still water',
+    artUrl: 'https://images.unsplash.com/photo-1543340713-4eaed7f73b37?auto=format&w=220&h=290&fit=crop&q=80',
+    typingSpeed: 44,   // ms per character
+    listenPause: 1400, // ms before typing starts
+    genDelay: 2600,    // ms "generating" phase
+  };
+
+  // Preload the result image immediately
+  const _pre = new Image();
+  _pre.src = DEMO.artUrl;
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+
+  function typeInto(el, text, speed) {
+    return new Promise(resolve => {
+      el.innerHTML = '<span class="caret"></span>';
+      const caret = el.querySelector('.caret');
+      let i = 0;
+      const iv = setInterval(() => {
+        if (i < text.length) {
+          el.insertBefore(document.createTextNode(text[i++]), caret);
+        } else {
+          clearInterval(iv);
+          resolve();
+        }
+      }, speed);
+    });
+  }
+
+  // ── Demo flow ──────────────────────────────────────────────────────────
+  async function runDemo() {
+    // Reset voice screen state
+    $('voice-panel').style.display = 'flex';
+    $('gen-row').classList.remove('show');
+    $('voice-label').textContent = 'Listening…';
+    $('voice-quote').innerHTML = '<span class="caret"></span>';
+    $('voice-shimmer').classList.remove('on');
+    $('voice-frame-wrap').classList.remove('lit');
+
+    show('voice');
+
+    await wait(DEMO.listenPause);
+
+    // Type the prompt
+    $('voice-label').textContent = 'Hearing you…';
+    await typeInto($('voice-quote'), `"${DEMO.prompt}"`, DEMO.typingSpeed);
+
+    // Remove caret after done typing
+    const c = $('voice-quote').querySelector('.caret');
+    if (c) c.remove();
+
+    await wait(700);
+
+    // Switch to generating state
+    $('voice-panel').style.display = 'none';
+    $('gen-row').classList.add('show');
+    $('voice-shimmer').classList.add('on');
+    $('voice-frame-wrap').classList.add('lit');
+
+    await wait(DEMO.genDelay);
+
+    // Set up result screen
+    const resultArt = $('result-art');
+    resultArt.classList.remove('show');
+    resultArt.src = DEMO.artUrl;
+    $('result-caption').textContent = `"${DEMO.prompt}"`;
+
+    show('result');
+
+    // Fade in the artwork slightly after screen appears
+    await wait(180);
+    resultArt.classList.add('show');
+  }
+
+  // ── Bindings ───────────────────────────────────────────────────────────
+  $('btn-try').addEventListener('click', runDemo);
+
+  $('btn-again').addEventListener('click', () => {
+    $('result-art').classList.remove('show');
+    show('hero');
+  });
+</script>
+
+</body>
+</html>
