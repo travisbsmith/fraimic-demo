@@ -405,7 +405,7 @@
       <line x1="12" y1="19" x2="12" y2="22"/>
       <line x1="9" y1="22" x2="15" y2="22"/>
     </svg>
-    Try FrameMic
+    Try Fraimic
   </button>
 </div>
 
@@ -487,18 +487,40 @@
 
 
 <script>
-  // ── Config ─────────────────────────────────────────────────────────────
-  const DEMO = {
-    prompt: 'A misty Japanese garden at dawn, cherry blossoms reflected in still water',
-    artUrl: 'img/result-art.jpg',
-    typingSpeed: 44,   // ms per character
-    listenPause: 1400, // ms before typing starts
-    genDelay: 2600,    // ms "generating" phase
-  };
+  // ── Variations ─────────────────────────────────────────────────────────
+  const VARIATIONS = [
+    {
+      prompt: 'A misty lake at dawn, pine trees reflected in still water, soft morning fog',
+      artUrl: 'img/result-art.jpg',
+    },
+    {
+      prompt: 'A snow-capped mountain beneath the Milky Way, stars scattered across the night sky',
+      artUrl: 'img/art-2.jpg',
+    },
+    {
+      prompt: 'Mountain peaks rising above a sea of clouds at sunrise, golden light on the horizon',
+      artUrl: 'img/art-3.jpg',
+    },
+    {
+      prompt: 'An ancient forest path at golden hour, sunlight filtering through towering trees',
+      artUrl: 'img/art-4.jpg',
+    },
+  ];
 
-  // Preload the result image immediately
-  const _pre = new Image();
-  _pre.src = DEMO.artUrl;
+  // Preload all images
+  VARIATIONS.forEach(v => { const i = new Image(); i.src = v.artUrl; });
+
+  // Shuffle that never repeats the previous pick
+  let lastIndex = -1;
+  function nextVariation() {
+    const pool = VARIATIONS.map((_, i) => i).filter(i => i !== lastIndex);
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    lastIndex = pick;
+    return VARIATIONS[pick];
+  }
+
+  // ── Timing ─────────────────────────────────────────────────────────────
+  const TIMING = { typingSpeed: 44, listenPause: 1400, genDelay: 2600 };
 
   // ── Helpers ────────────────────────────────────────────────────────────
   const $ = id => document.getElementById(id);
@@ -527,7 +549,9 @@
 
   // ── Demo flow ──────────────────────────────────────────────────────────
   async function runDemo() {
-    // Reset voice screen state
+    const v = nextVariation();
+
+    // Reset voice screen
     $('voice-panel').style.display = 'flex';
     $('gen-row').classList.remove('show');
     $('voice-label').textContent = 'Listening…';
@@ -537,35 +561,30 @@
 
     show('voice');
 
-    await wait(DEMO.listenPause);
+    await wait(TIMING.listenPause);
 
-    // Type the prompt
     $('voice-label').textContent = 'Hearing you…';
-    await typeInto($('voice-quote'), `"${DEMO.prompt}"`, DEMO.typingSpeed);
+    await typeInto($('voice-quote'), `"${v.prompt}"`, TIMING.typingSpeed);
 
-    // Remove caret after done typing
     const c = $('voice-quote').querySelector('.caret');
     if (c) c.remove();
 
     await wait(700);
 
-    // Switch to generating state
     $('voice-panel').style.display = 'none';
     $('gen-row').classList.add('show');
     $('voice-shimmer').classList.add('on');
     $('voice-frame-wrap').classList.add('lit');
 
-    await wait(DEMO.genDelay);
+    await wait(TIMING.genDelay);
 
-    // Set up result screen
     const resultArt = $('result-art');
     resultArt.classList.remove('show');
-    resultArt.src = DEMO.artUrl;
-    $('result-caption').textContent = `"${DEMO.prompt}"`;
+    resultArt.src = v.artUrl;
+    $('result-caption').textContent = `"${v.prompt}"`;
 
     show('result');
 
-    // Fade in the artwork slightly after screen appears
     await wait(180);
     resultArt.classList.add('show');
   }
